@@ -18,12 +18,14 @@ public class MainScreen extends JComponent implements MouseListener {
 	
 	private int curGeneration = 0;
 	private int generations;
+	private String target = "000000001111111111111111"; // Binary RGB for target color
 	
 	private boolean end = false;
+	private boolean autonomous = false; // True if you want to mutate automatically towards a goal, false if you want to find your favorite color
 	
 	public MainScreen(JFrame frame) {
 		for(int i = 0; i < colors.length; i++) {
-			colors[i] = new ColorBox(chromosomeGenerator(i));
+			colors[i] = new ColorBox(chromosomeGenerator((int) (Math.random()*100)), autonomous); // Change "(int (Math.random()*100))" to "i" for consistent results
 		}
 	}
 	
@@ -42,6 +44,9 @@ public class MainScreen extends JComponent implements MouseListener {
 	
 	public void paintComponent(Graphics g) {
 		g.translate(-7, -30);
+		if(autonomous && colors[0].getRanking() == 765) {
+			end = true;
+		}
 		if (end) {
 			g.setColor(colors[0].getColor());
 			g.fillRect(-10, -50, 10000, 10000);
@@ -74,7 +79,7 @@ public class MainScreen extends JComponent implements MouseListener {
 				}
 			}
 			
-			if (ranking >= 15) {
+			if (ranking >= 15 || autonomous) {
 				g.setColor(Color.BLACK);
 				g.drawRect(240, 600, 300, 80);
 				g.drawString("Next", 380, 640);
@@ -90,7 +95,14 @@ public class MainScreen extends JComponent implements MouseListener {
 		Random r = new Random(seed);
 		int j = 1;
 		for(int i = 0; i < 24; i++) {
-			if (r.nextInt(224) <= j*c.getRanking()) {
+			boolean doMutate = false;
+			if (autonomous) {
+				doMutate = r.nextInt(j*c.getRanking()) <= c.getRanking();
+			}
+			else {
+				doMutate = r.nextInt(224) <= j*c.getRanking();
+			}
+			if (doMutate) {
 				char rep = ' ';
 				if (code.charAt(i) == '0') {
 					rep = '1';
@@ -112,20 +124,22 @@ public class MainScreen extends JComponent implements MouseListener {
 				j++;
 			}
 		}
-		return new ColorBox(code);
+		return new ColorBox(code, autonomous);
 	}
 	
 	public void nextGeneration(int seed) {
 		Arrays.sort(colors);
-		System.out.println(seed);
 		Random r = new Random(seed);
 		for(int i = 2; i < 7; i++) {
 			ColorBox temp = colors[i];
 			colors[i] = mutate(temp, r.nextInt(100));
 			colors[i+5] = mutate(temp, r.nextInt(100));
+			while (colors[i+5].getCode().contentEquals(colors[i].getCode())) {
+				colors[i+5] = mutate(temp, r.nextInt(100));
+			}
 		}
-		colors[12] = new ColorBox(chromosomeGenerator(r.nextInt(100)));
-		colors[13] = new ColorBox(chromosomeGenerator(r.nextInt(100)));
+		colors[12] = new ColorBox(chromosomeGenerator(r.nextInt(100)), autonomous);
+		colors[13] = new ColorBox(chromosomeGenerator(r.nextInt(100)), autonomous);
 		for(int i = 0; i < 14; i++) {
 			colors[i].setRanking(0);
 		}
@@ -139,22 +153,30 @@ public class MainScreen extends JComponent implements MouseListener {
 
 	@Override
 	public void mousePressed(MouseEvent e) {
-		for(int i = 0; i < 14; i++) {
-			if (colors[i].getRect().contains(new Point(e.getX(), e.getY()))) {
-				if(colors[i].getRanking() == 0) {
-					colors[i].setRanking(ranking);
-					ranking++;
-					repaint();
+		if(!autonomous) {
+			for(int i = 0; i < 14; i++) {
+				if (colors[i].getRect().contains(new Point(e.getX(), e.getY()))) {
+					if(colors[i].getRanking() == 0) {
+						colors[i].setRanking(ranking);
+						ranking++;
+						repaint();
+					}
 				}
 			}
 		}
-		if (ranking >= 15) {
+		if (ranking >= 15 || autonomous) {
 			if (e.getX() >= 240 && e.getX() <= 540 && e.getY() >= 600 && e.getY() <= 680) {
 				if(curGeneration >= generations) {
 					end = true;
 					repaint();
 				}
 				else {
+					if (autonomous) {
+						for(int i = 0; i < 14; i++) {
+							colors[i].setRanking(compare(colors[i], target));
+							repaint();
+						}
+					}
 					nextGeneration((int) (Math.random()*50));
 					ranking = 1;
 					curGeneration++;
@@ -180,7 +202,28 @@ public class MainScreen extends JComponent implements MouseListener {
 
 	@Override
 	public void mouseExited(MouseEvent e) {
+
+		
 		// TODO Auto-generated method stub
 		
+	}
+
+	public int compare(ColorBox color, String target) {
+		String c = color.getCode();
+		int score = 0;
+		int val = 128;
+		int j = 1;
+		for(int i = 0; i < 24; i++) {
+			if(c.charAt(i) == target.charAt(i)) {
+				score += val;
+			}
+			j++;
+			val /= 2;
+			if(j % 9 == 0) {
+				j = 1;
+				val = 128;
+			}
+		}
+		return score;
 	}
 }

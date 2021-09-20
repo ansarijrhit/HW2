@@ -8,13 +8,15 @@ public class ColorBox implements Comparable<ColorBox> {
 	private Color color;
 	private String code;
 	private Rectangle rect;
+	private boolean autonomous;
 	
-	public ColorBox(String code) {
+	public ColorBox(String code, boolean autonomous) {
 		this.code = code;
 		r = Integer.parseInt(code.substring(0, 8), 2);
 		g = Integer.parseInt(code.substring(8, 16), 2);
 		b = Integer.parseInt(code.substring(16, 24), 2);
 		this.color = new Color(r, g, b);
+		this.autonomous = autonomous;
 	}
 	
 	public void setRanking(int rank) {
@@ -50,6 +52,9 @@ public class ColorBox implements Comparable<ColorBox> {
 	
 	@Override
 	public int compareTo(ColorBox c) {
+		if (autonomous) {
+			return c.getRanking() > this.getRanking() ? 1 : -1;
+		}
 		return c.getRanking() > this.getRanking() ? -1 : 1;
 	}
 }
