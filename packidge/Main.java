@@ -13,6 +13,7 @@ import javax.swing.JTextField;
 // Preliminary UI: 37:46
 // User Interaction: 118:12
 // Autonomous Evolution: 63:55
+// Report: 31:21
 
 public class Main {
 	
